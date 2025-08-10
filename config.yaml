@@ -1,0 +1,48 @@
+agent:
+  name: Bity
+  description: "A local AI assistant for macOS. Handles Excel files, interacts via natural language, and controls the system."
+  language: en
+  operating_system: macOS
+
+modules:
+  model_engine: "local_llm_engine.py"       # Your own LLM
+  context_manager: "memory_context.py"      # Keeps track of dialogue state
+  file_handler: "file_ops.py"               # For file browsing and validation
+  excel_handler: "excel_ops.py"             # For Excel editing
+  os_executor: "os_controller.py"           # subprocess / osascript wrapper
+
+intents:
+  - id: open_excel
+    triggers:
+      - "open excel"
+      - "load spreadsheet"
+      - "open .xlsx file"
+    slots: "filename"
+    actions:
+      - ask: "Which Excel file should I open?"
+      - file_select: true
+      - register_current_resource:
+        file_type: "excel"
+      - run:
+          module: excel_handler
+          function: open_excel_file
+      - respond: "File opened. What would you like to do with it?"
+
+  - id: edit_excel
+    requires_context: true
+    triggers:
+      - "edit it"
+      - "edit this file"
+      - "fill in the table for this file"
+      - "add data to this file"
+      - "insert value in this file"
+    actions:
+      - inject_current_file: true
+      - ask: "Please provide data in the format: row, column, value."
+      - parser_input:
+          method: "nlp"
+          structure: ["row", "column", "value"]
+      - run:
+          module: excel_handler
+          function: edit_excel_file
+      - respond: "Done. The table has been updated. Anything else?"
